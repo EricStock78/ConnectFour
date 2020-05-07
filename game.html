@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Canvas tutorial</title>
+    <script type="text/javascript">
+        var player = 1;
+        var board = new Array(7);
+        for( let i=0; i<7; i++ ) {
+            board[i] = new Array(6);
+            board[i].fill(0);
+        }
+        
+        function getMousePosition(canvas, event) { 
+            let rect = canvas.getBoundingClientRect(); 
+            let x = event.clientX - rect.left; 
+            let y = event.clientY - rect.top; 
+            console.log("Coordinate x: " + x,  
+                        "Coordinate y: " + y); 
+            
+            let col = parseInt(x / 100);
+            console.log(col);
+            placePiece(col);
+            
+        } 
+        
+        function placePiece(col) {
+            for( let row=5; row>=0; row--) {
+                if( board[col][row] == 0) {
+                    if( player == 1) {
+                        board[col][row] = 1;
+                        player = 2;
+                    }
+                    else {
+                        board[col][row] = 2;
+                        player = 1;
+                    }
+                    break;
+                }
+            }
+            draw();
+        }
+        
+        
+        function draw() {
+            var canvas = document.getElementById('tutorial');
+              if (canvas.getContext) {
+                var ctx = canvas.getContext('2d');
+                for(let row = 0; row<6; row++ ) {
+                    for( let col = 0; col<7; col++ ) {
+                      if( board[col][row] == 0 ) {
+                          ctx.strokeRect( col * 100, row * 100, 100, 100);
+                      }  
+                      else if( board[col][row] == 1 ) {
+                          ctx.fillStyle = 'rgb(200, 0, 0)';
+                          ctx.fillRect( col * 100, row * 100, 100, 100);
+                      }
+                      else if( board[col][row] == 2 ) {
+                          ctx.fillStyle = 'rgb(200, 200, 0)';
+                          ctx.fillRect( col * 100, row * 100, 100, 100);
+                      }
+                    }
+                }
+                  
+                for(let row = 0; row<6; row++ ) {
+                    for( let col = 0; col<7; col++ ) {
+                        ctx.strokeRect( col * 100, row * 100, 100, 100);
+                    }
+                }
+              }
+      }
+        
+      window.onload = function() {
+          draw();
+          let canvasElem = document.getElementById('tutorial');
+          
+          canvasElem.addEventListener("mousedown", function(evt) 
+          { 
+              getMousePosition(canvasElem, evt); 
+          }); 
+      }
+    </script>
+    <style type="text/css">
+      canvas { border: 1px solid black; }
+    </style>
+  </head>
+  <body>
+    <canvas id="tutorial" width="700" height="600"></canvas>
+  </body>
+</html>
