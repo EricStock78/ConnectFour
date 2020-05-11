@@ -4,6 +4,14 @@
     <meta charset="utf-8"/>
     <title>Canvas tutorial</title>
     <script type="text/javascript">
+        var boardImage = new Image();
+        boardImage.src = "Assets/c4Board.png";
+        var player1Image = new Image();
+        player1Image.src = "Assets/player1.png";
+        var player1Offset = [ 14, 9];
+        var player2Image = new Image();
+        player2Image.src = "Assets/player2.png";
+        var player2Offset = [ 14, 9];
         var player = 1;
         var board = new Array(7);
         for( let i=0; i<7; i++ ) {
@@ -46,25 +54,28 @@
             var canvas = document.getElementById('tutorial');
               if (canvas.getContext) {
                 var ctx = canvas.getContext('2d');
+                ctx.drawImage(boardImage,0,0);
                 for(let row = 0; row<6; row++ ) {
                     for( let col = 0; col<7; col++ ) {
                       if( board[col][row] == 0 ) {
-                          ctx.strokeRect( col * 100, row * 100, 100, 100);
+                          //ctx.strokeRect( col * 100, row * 100, 100, 100);
                       }  
                       else if( board[col][row] == 1 ) {
-                          ctx.fillStyle = 'rgb(200, 0, 0)';
-                          ctx.fillRect( col * 100, row * 100, 100, 100);
+                          ctx.drawImage(player1Image, col * 100 + player1Offset[0], row * 100 + player1Offset[1]);
+                          //ctx.fillStyle = 'rgb(200, 0, 0)';
+                          //ctx.fillRect( col * 100, row * 100, 100, 100);
                       }
                       else if( board[col][row] == 2 ) {
-                          ctx.fillStyle = 'rgb(200, 200, 0)';
-                          ctx.fillRect( col * 100, row * 100, 100, 100);
+                          ctx.drawImage(player2Image, col * 100 + player2Offset[0], row * 100 + player2Offset[1]);
+                          //ctx.fillStyle = 'rgb(200, 200, 0)';
+                          //ctx.fillRect( col * 100, row * 100, 100, 100);
                       }
                     }
                 }
                   
                 for(let row = 0; row<6; row++ ) {
                     for( let col = 0; col<7; col++ ) {
-                        ctx.strokeRect( col * 100, row * 100, 100, 100);
+                        //ctx.strokeRect( col * 100, row * 100, 100, 100);
                     }
                 }
               }
@@ -85,6 +96,6 @@
     </style>
   </head>
   <body>
-    <canvas id="tutorial" width="700" height="600"></canvas>
+    <canvas id="tutorial" width="726" height="626"></canvas>
   </body>
 </html>
