@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <title>Canvas tutorial</title>
     <script type="text/javascript">
-        
+        "use strict"
         const state = {
             PLAYING: 'playing',
             REDWINS: 'redwins',
@@ -32,18 +32,21 @@
         
         var startPos = new Array(4);    //0 horiz pixel position of start of drop, 1 vert pixel position of start of drop
                                         //2 horiz or column the piece starts at, 3 vert or row position the piece starts at
-        var endPost = new Array(4);
+        var endPos = new Array(4);
         var dropTimer;
         
         
         var player1Offset = [ 9, 7];
         var player2Offset = [ 9, 7];
-        var player = 1;
+        var player = 2;
         var board = new Array(7);
         for( let i=0; i<7; i++ ) {
             board[i] = new Array(6);
             board[i].fill(0);
         }
+        
+        var totalPositions = 0;
+        var moveCount = 0;
         
         
         function getMousePosition(canvas, event) { 
@@ -53,15 +56,16 @@
             console.log("Coordinate x: " + x,  
                         "Coordinate y: " + y); 
             
-            if( gameState == state.PLAYING && player == 1 ) {
+            if( gameState == state.PLAYING && player == 2 ) {
                 let col = parseInt(x / 100);
                 console.log(col);
                 placePiece(col);
             }
             else if( gameState == state.DRAW || gameState == state.REDWINS || gameState == state.YELLOWWINS) {
-                if( x >= 200 && x <=532 && y >= 350 && y <= 449) {
+                if( x >= 200 && x <=532 && y >= 800 && y <= 899) {
                     gameState = state.PLAYING;
-                    player = 1;
+                    player = 2;
+                    moveCount = 0;
                     for( let i=0; i<7; i++ ) {
                         board[i].fill(0);
                     }
@@ -100,20 +104,44 @@
         
         function dropPiece() {
            startPos[1] += 30;
-            console.log("dropping");
+            //console.log("dropping");
            if(startPos[1] >= endPos[1] ) {
                clearInterval(dropTimer);
-               board[endPos[2]][endPos[3]] = player;
-               console.log( board[endPos[2]][endPos[3]]);
-               gameState = checkWin(endPos[2], endPos[3], player);
-               if( player == 1 ) {
+               makeMove(endPos[2]);
+               //board[endPos[2]][endPos[3]] = player;
+               //console.log( board[endPos[2]][endPos[3]]);
+               gameState = checkWin(endPos[2]);
+               /*if( player == 1 ) {
                    player = 2;
                }
                else {
                    player = 1;
-               }
+               }*/
                
-               if( gameState == state.PLAYING && player == 2) {
+               let bestScore = -100;
+               let bestMove = 0;
+               totalPositions = 0;
+               if( gameState == state.PLAYING && player == 1) {
+                   
+                   for( let i=0; i<=6; i++ ) {
+                       if( board[i][0] == 0) {
+                           makeMove(i);
+                           let score = -search(8, i);
+                           console.log("column "+i+" score: "+score);
+                           if( score > bestScore ) {
+                               bestScore = score;
+                               bestMove = i;
+                           }
+                           unMakeMove(i);
+                       }
+                   }
+                   console.log("total positions "+totalPositions);
+                   placePiece(bestMove);
+                   
+                   
+                   
+               }
+               else if( gameState == state.PLAYING && player == 2) {
                    computerTurn();
                }
                
@@ -122,15 +150,77 @@
            draw();
         }
         
+        function search(depthRemaining, col) {
+            totalPositions++;
+            let status = checkWin(col);
+            if( status != state.PLAYING) {
+                if( status == state.DRAW ) {
+                    return 0;
+                }
+                else {
+                    return -depthRemaining;
+                }
+            }
+            else if( depthRemaining == 0) {
+                return 0;
+            }
+            
+            let bestScore = -1000;
+            for( let i=0; i<=6; i++ ) {
+               if( board[i][0] == 0) {
+                   makeMove(i);
+                   bestScore = Math.max(bestScore, -search(depthRemaining-1, i));
+                   unMakeMove(i);
+               }
+           }
+           
+           return bestScore;
+        }
+        
+        
+        function makeMove(col) {
+            moveCount++;
+            for( let i=5; i>=0; i-- ) {
+                if( board[col][i] == 0 ) {
+                    board[col][i] = player;
+                    break;
+                }
+            }
+            if( player == 1 ) {
+                player = 2;
+            }
+            else {
+                player = 1;
+            }
+        }
+        
+        function unMakeMove(col) {
+            moveCount--;
+            for( let i=0; i<6; i++ ) {
+                if( board[col][i] != 0 ) {
+                    board[col][i] = 0;
+                    break;
+                }
+            }
+            if( player == 1 ) {
+                player = 2;
+            }
+            else {
+                player = 1;
+            }
+        }
+         
         function computerTurn() {
             // look for a move which wins the game for the computer
             for( let col = 0; col<7; col++ ) {
                 for( let row=5; row>=0; row--) {
                   if( board[col][row] == 0 ) {
-                      board[col][row] = 2;
-                      let gameStateAfterMove = checkWin(col, row, 2);
-                      board[col][row] = 0;
-                      if( gameStateAfterMove == state.REDWINS) {
+                      makeMove(col);
+                      //board[col][row] = 2;
+                      let gameStateAfterMove = checkWin(col);
+                      //board[col][row] = 0;
+                      unMakeMove(col);
+                      if( gameStateAfterMove == state.REDWINS || gameStateAfterMove == state.YELLOWWINS) {
                           placePiece(col);
                           return;
                       }
@@ -141,13 +231,17 @@
             
             
             // look for a move where the human can win the game
+            
+            let opponent = player == 1 ? 2: 1;
             for( let col = 0; col<7; col++ ) {
                 for( let row=5; row>=0; row--) {
                   if( board[col][row] == 0 ) {
-                      board[col][row] = 1;
-                      let gameStateAfterMove = checkWin(col, row, 1);
+                      //makeMove(col);
+                      board[col][row] = opponent;
+                      let gameStateAfterMove = checkWin(col);
+                      //unMakeMove(col);
                       board[col][row] = 0;
-                      if( gameStateAfterMove == state.YELLOWWINS) {
+                      if(gameStateAfterMove == state.REDWINS || gameStateAfterMove == state.YELLOWWINS) {
                           placePiece(col);
                           return;
                       }
@@ -180,12 +274,21 @@
         }
         
         
-        function checkWin(col, row, player) {
+        function checkWin(col) {
             let offsets = new Array(4);
             offsets[0] = [0,1];     //vertical
             offsets[1] = [1,0];     //horizontal
             offsets[2] = [1,1];     //diagonal 1
             offsets[3] = [-1,1];    //diagonal 2
+            
+            let row = 0;
+            for( let i=0; i<6; i++ ) {
+                if( board[col][i] != 0) {
+                    row = i;
+                    break;
+                }
+            }
+            let playerToCheck = board[col][row];
             
             for( let i=0; i<4; i++ ) {
 
@@ -196,7 +299,7 @@
                     rowToCheck += offsets[i][1];
                     columnToCheck += offsets[i][0];
                     if( rowToCheck < 0 || columnToCheck < 0 || rowToCheck > 5 || columnToCheck > 6 ) break;
-                    if( board[columnToCheck][rowToCheck] == player) {
+                    if( board[columnToCheck][rowToCheck] == playerToCheck) {
                         count++;
                     }
                     else {
@@ -210,7 +313,7 @@
                     rowToCheck -= offsets[i][1];
                     columnToCheck -= offsets[i][0];
                     if( rowToCheck < 0 || columnToCheck < 0 || rowToCheck > 5 || columnToCheck > 6 ) break;
-                    if( board[columnToCheck][rowToCheck] == player) {
+                    if( board[columnToCheck][rowToCheck] == playerToCheck) {
                         count++;
                     }
                     else {
@@ -220,21 +323,20 @@
 
 
                 if( count >= 4 ) {
-                    console.log("GAME OVER");
-                    return player == 1 ? state.YELLOWWINS : state.REDWINS;
+                    return playerToCheck == 1 ? state.YELLOWWINS : state.REDWINS;
                 }
             }
             
             
-            let draw = true;
+            /*let draw = true;
             for(let row = 0; row<6; row++ ) {
                 for( let col = 0; col<7; col++ ) {
                   if( board[col][row] == 0 ) {
                       draw = false;
                   }
                 }
-            }
-            if( draw ) {
+            }*/
+            if( moveCount == 42 ) {
                 return state.DRAW;
             }
             else {
@@ -247,17 +349,17 @@
         function draw() {
             var canvas = document.getElementById('tutorial');
               if (canvas.getContext) {
-                console.log("drawing");
+                //console.log("drawing");
                   var ctx = canvas.getContext('2d');
-                ctx.clearRect(0,0,726,626);
+                ctx.clearRect(0,0,726,926);
                 
                 if( gameState == state.DROPPINGPIECE) {
                     if( player == 1 ) {
-                        console.log(startPos[1]);
+                        //console.log(startPos[1]);
                         ctx.drawImage(player1Image, startPos[0], startPos[1]);
                     }
                     else {
-                        console.log(startPos[1]);
+                        //console.log(startPos[1]);
                         ctx.drawImage(player2Image, startPos[0], startPos[1]);
                     }
                 }  
@@ -269,13 +371,13 @@
                           //ctx.strokeRect( col * 100, row * 100, 100, 100);
                       }  
                       else if( board[col][row] == 1 ) {
-                          console.log("drawing piece");
+                          //console.log("drawing piece");
                           ctx.drawImage(player1Image, col * 100 + player1Offset[0], row * 100 + player1Offset[1]);
                           //ctx.fillStyle = 'rgb(200, 0, 0)';
                           //ctx.fillRect( col * 100, row * 100, 100, 100);
                       }
                       else if( board[col][row] == 2 ) {
-                           console.log("drawing piece");
+                           //console.log("drawing piece");
                           ctx.drawImage(player2Image, col * 100 + player2Offset[0], row * 100 + player2Offset[1]);
                           //ctx.fillStyle = 'rgb(200, 200, 0)';
                           //ctx.fillRect( col * 100, row * 100, 100, 100);
@@ -292,17 +394,17 @@
                   
                 if( gameState == state.REDWINS) {
                     ctx.drawImage(blackQuad,0,0);
-                    ctx.drawImage(redWinsImage, 200, 200);
-                    ctx.drawImage(playAgainImage, 200, 350);
+                    ctx.drawImage(redWinsImage, 200, 700);
+                    ctx.drawImage(playAgainImage, 200, 800);
                 }
                 else if(gameState == state.YELLOWWINS) {
                     ctx.drawImage(blackQuad,0,0);
-                     ctx.drawImage(yellowWinsImage, 200, 200);
-                     ctx.drawImage(playAgainImage, 200, 350);
+                     ctx.drawImage(yellowWinsImage, 200, 700);
+                     ctx.drawImage(playAgainImage, 200, 800);
                 }
                 else if(gameState == state.DRAW) {
                     ctx.drawImage(blackQuad,0,0);
-                     ctx.drawImage(playAgainImage, 200, 350);
+                     ctx.drawImage(playAgainImage, 200, 800);
                 }
                 
               }
@@ -323,6 +425,6 @@
     </style>
   </head>
   <body>
-    <canvas id="tutorial" width="726" height="626"></canvas>
+    <canvas id="tutorial" width="726" height="926"></canvas>
   </body>
 </html>
